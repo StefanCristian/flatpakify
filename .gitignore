@@ -2,3 +2,4 @@
 !.flatpak-builder
 !.gitignore
 !flatpakify-with-portage.sh
+!README.md

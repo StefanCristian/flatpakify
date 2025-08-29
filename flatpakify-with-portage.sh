@@ -135,10 +135,8 @@ ICON_DST="${ICON_DST_DIR}/${APP_ID}.png"
 TARBALL_NAME="${SAFE_ID}-rootfs.tar.${COMP:+zst}"
 TARBALL="${STAGE_DIR}/${TARBALL_NAME}"
 
-echo "==> Preparing directories"
 mkdir -p "${ROOTFS}" "${FLATPAK_DIR}" "${BUILD_DIR}" "${REPO_DIR}"
 
-echo "==> Emerge into staging ROOT (sudo required)"
 if [[ "${ROOT_DEPS}" == "rdeps" ]]; then
   sudo emerge -v1 \
     --root="${ROOTFS}" \
@@ -153,11 +151,9 @@ else
     ${PKG}
 fi
 
-echo "==> Trimming staging tree"
 sudo rm -rf "${ROOTFS}/etc" "${ROOTFS}/var/run" "${ROOTFS}/var/tmp" 2>/dev/null || true
 
 if [[ "${BUNDLE_LIBS}" == "true" ]]; then
-  echo "==> Analyzing library dependencies"
   
   STAGED_BINARY=""
   if [[ -f "${ROOTFS}${REALBIN}" ]]; then
@@ -167,7 +163,6 @@ if [[ "${BUNDLE_LIBS}" == "true" ]]; then
   fi
   
   if [[ -n "${STAGED_BINARY}" && -f "${STAGED_BINARY}" ]]; then
-    echo "==> Found staged binary: ${STAGED_BINARY}"
     
     LIBS_TO_BUNDLE=()
     while IFS= read -r lib_line; do
@@ -181,7 +176,6 @@ if [[ "${BUNDLE_LIBS}" == "true" ]]; then
            [[ ! "$lib_path" =~ ^/(lib|lib64|usr/lib|usr/lib64)/(libasound|libpulse|libpipewire|libopenal) ]] && \
            [[ "$lib_path" != *"linux-vdso"* ]]; then
           LIBS_TO_BUNDLE+=("$lib_path")
-          echo "  -> Will bundle: $lib_name ($lib_path)"
         else
           echo "  -> Skipping system lib: $lib_name"
         fi
@@ -189,13 +183,11 @@ if [[ "${BUNDLE_LIBS}" == "true" ]]; then
     done < <(ldd "${STAGED_BINARY}" 2>/dev/null || true)
     
     if [[ ${#LIBS_TO_BUNDLE[@]} -gt 0 ]]; then
-      echo "==> Bundling ${#LIBS_TO_BUNDLE[@]} libraries"
       sudo mkdir -p "${ROOTFS}/usr/lib64"
       
       for lib_path in "${LIBS_TO_BUNDLE[@]}"; do
         if [[ -f "$lib_path" ]]; then
           sudo cp -L "$lib_path" "${ROOTFS}/usr/lib64/"
-          echo "  -> Bundled: $(basename "$lib_path")"
         fi
       done
     else
@@ -207,7 +199,6 @@ if [[ "${BUNDLE_LIBS}" == "true" ]]; then
   fi
 fi
 
-echo "==> Creating payload tarball"
 pushd "${ROOTFS}" >/dev/null
 if [[ -n "$COMP" && "$COMP" == zstd* ]]; then
   sudo tar -I "$COMP" -cf "${TARBALL}" .
@@ -231,10 +222,8 @@ AUTO_ICON_BINARY="${ROOTFS}/usr/share/pixmaps/${BINARY_NAME}.png"
 AUTO_ICON_PATH=""
 if [[ -f "${AUTO_ICON_PACKAGE}" ]]; then
   AUTO_ICON_PATH="${AUTO_ICON_PACKAGE}"
-  echo "==> Found icon for package name: ${AUTO_ICON_PACKAGE}"
 elif [[ -f "${AUTO_ICON_BINARY}" ]]; then
   AUTO_ICON_PATH="${AUTO_ICON_BINARY}"
-  echo "==> Found icon for binary name: ${AUTO_ICON_BINARY}"
 fi
 
 if [[ "${GUI}" == "true" ]] || [[ -n "${AUTO_ICON_PATH}" ]]; then
@@ -246,10 +235,8 @@ if [[ "${GUI}" == "true" ]] || [[ -n "${AUTO_ICON_PATH}" ]]; then
   
   if [[ -n "${ICON_PATH}" && -f "${ICON_PATH}" ]]; then
     cp -f "${ICON_PATH}" "${ICON_DST}"
-    echo "==> Using provided icon: ${ICON_PATH}"
   elif [[ -n "${AUTO_ICON_PATH}" ]]; then
     cp -f "${AUTO_ICON_PATH}" "${ICON_DST}"
-    echo "==> Using auto-detected icon: ${AUTO_ICON_PATH}"
   else
     echo "ERROR: GUI app requested but no icon found"
     echo "Checked: ${AUTO_ICON_PACKAGE}"
@@ -317,7 +304,6 @@ if [[ ${#FIN_LINES[@]} -gt 0 ]]; then
   done
 fi
 
-echo "==> Writing Flatpak manifest"
 cat > "${MANIFEST}" <<EOF
 app-id: ${APP_ID}
 runtime: ${RUNTIME}
@@ -382,30 +368,23 @@ cat >> "${MANIFEST}" <<EOF
 EOF
 fi
 
-echo "==> Staging payload next to manifest"
 cp -f "${TARBALL}" "${FLATPAK_DIR}/"
 
-echo "==> Building Flatpak"
 flatpak-builder --force-clean "${BUILD_DIR}" "${MANIFEST}"
 
-echo "==> Exporting local repo and bundle"
 flatpak-builder --repo="${REPO_DIR}" --force-clean "${BUILD_DIR}" "${MANIFEST}"
 BUNDLE="${SAFE_ID}.flatpak"
 flatpak build-bundle "${REPO_DIR}" "${BUNDLE}" "${APP_ID}"
 
 if [[ "${INSTALL}" == "true" ]]; then
-  echo "==> Installing to current user"
   flatpak-builder --user --install --force-clean "${BUILD_DIR}" "${MANIFEST}"
 fi
 
 if [[ "${RUN_AFTER}" == "true" ]]; then
-  echo "==> Running ${APP_ID}"
   flatpak run "${APP_ID}"
 fi
 
 cat <<EOF
-
-✅ Done.
 
 Artifacts:
 - Manifest:        ${MANIFEST}
