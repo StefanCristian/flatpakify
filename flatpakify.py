@@ -313,32 +313,77 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
         FLATPAK_RUNTIME_VERSION = "6.9"
         log(f"Using KDE runtime: {RUNTIME}/{FLATPAK_RUNTIME_VERSION}")
     
+    if EMERGE_REBUILD_BINARY:
+        EMERGE_FEATURES = "-collision-protect -protect-owned"
+    else:
+        EMERGE_FEATURES = "-collision-protect -protect-owned getbinpkg"
+    
     if BUILD_AS_DATA:
         EMERGE_OPTS = "-v1 --nodeps --emptytree --ask=n"
         log("Building data package without dependencies...")
     elif WITH_DEPS:
         EMERGE_OPTS = "-v1 --nodeps --emptytree --ask=n"
         log("Building with first-level runtime dependencies...")
-        try:
-            result = subprocess.run(["./first-level-runtime.py"] + PKGS, capture_output=True, text=True, check=True)
-            runtime_deps = result.stdout.strip().split()
-            if runtime_deps:
-                log(f"Adding runtime dependencies: {' '.join(runtime_deps)}")
-                PKGS.extend(runtime_deps)
-            else:
-                log("No additional runtime dependencies found")
-        except subprocess.CalledProcessError as e:
-            log(f"Warning: Failed to get runtime dependencies: {e}")
-        except FileNotFoundError:
-            log("Warning: ./first-level-runtime.py not found, building without additional dependencies")
+        
+        all_runtime_deps = []
+        for PKG in PKGS:
+            try:
+                result = subprocess.run(["./first-level-runtime.py", PKG], capture_output=True, text=True, check=True)
+                runtime_deps = result.stdout.strip().split('\n')
+                runtime_deps = [dep for dep in runtime_deps if dep]
+                if runtime_deps:
+                    log(f"Runtime dependencies for {PKG}: {' '.join(runtime_deps)}")
+                    all_runtime_deps.extend(runtime_deps)
+                else:
+                    log(f"No runtime dependencies found for {PKG}")
+            except subprocess.CalledProcessError as e:
+                log(f"Warning: Failed to get runtime dependencies for {PKG}: {e}")
+            except FileNotFoundError:
+                log("Warning: ./first-level-runtime.py not found, building without additional dependencies")
+                break
+        
+        seen = set()
+        unique_deps = []
+        for dep in all_runtime_deps:
+            if dep not in seen:
+                seen.add(dep)
+                unique_deps.append(dep)
+        
+        if unique_deps:
+            log(f"Total unique runtime dependencies to build: {len(unique_deps)}")
+            
+            log("Phase 1: Building runtime dependencies...")
+            
+            emerge_env = os.environ.copy()
+            emerge_env["FEATURES"] = EMERGE_FEATURES
+            emerge_env["PKGDIR"] = os.environ.get("PKGDIR", f"{os.getcwd()}/binpkgs/")
+            emerge_env["CONFIG_PROTECT"] = "-*"
+            
+            if not BUILD_AS_RUNTIME and not BUILD_AS_DATA:
+                emerge_env["EPREFIX"] = EPREFIX
+                log(f"Setting EPREFIX={EPREFIX} for dependencies")
+            
+            emerge_cmd = ["sudo"] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX"]]
+            emerge_cmd += ["emerge"] + EMERGE_OPTS.split() + [f"--root={ROOTFS}", f"--config-root={ROOTFS}"] + unique_deps
+            
+            result = subprocess.run(emerge_cmd, capture_output=False)
+            if result.returncode != 0:
+                error("Failed to build runtime dependencies. Check the emerge output above for details.")
+            
+            log("Runtime dependencies built successfully")
+            
+            log("Phase 2: Building main package(s)...")
+            
+        PKGS_TO_BUILD = PKGS
     else:
         EMERGE_OPTS = "-v1 --nodeps --emptytree --ask=n"
         log("Building without dependencies (strict package-only mode)...")
+        PKGS_TO_BUILD = PKGS
     
     if not VERBOSE:
         EMERGE_OPTS += " --quiet-build"
     
-    log("Running emerge (this may take a while)...")
+    log("Running emerge for main package(s) (this may take a while)...")
     
     if EMERGE_REBUILD_BINARY:
         EMERGE_FEATURES = "-collision-protect -protect-owned"
@@ -352,7 +397,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
     
     uses_cmake_meson = False
     if not BUILD_AS_RUNTIME and not BUILD_AS_DATA:
-        for PKG in PKGS:
+        for PKG in PKGS_TO_BUILD:
             EBUILD_PATH = ""
             for repo_dir in ["/var/db/repos/gentoo"] + list(Path("/var/db/repos").glob("*")):
                 pkg_dir = Path(repo_dir) / PKG
@@ -379,8 +424,10 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
     if BUILD_AS_DATA:
         emerge_env["INSTALL_MASK"] = "/bin /sbin /lib /lib/debug /lib64 /usr/bin /usr/sbin /usr/lib/debug /usr/lib /usr/lib64 /usr/libexec /usr/include /etc /var"
     
+    packages_to_emerge = PKGS_TO_BUILD if 'PKGS_TO_BUILD' in locals() else PKGS
+    
     emerge_cmd = ["sudo"] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX"]]
-    emerge_cmd += ["emerge"] + EMERGE_OPTS.split() + [f"--root={ROOTFS}", f"--config-root={ROOTFS}"] + PKGS
+    emerge_cmd += ["emerge"] + EMERGE_OPTS.split() + [f"--root={ROOTFS}", f"--config-root={ROOTFS}"] + packages_to_emerge
     
     result = subprocess.run(emerge_cmd, capture_output=False)
     if result.returncode != 0:
