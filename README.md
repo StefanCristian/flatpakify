@@ -29,6 +29,7 @@
 - if you have to recompile it everytime, you must use ```--rebuild-binary```
 - if you want to keep the rootfs/app/ files and debug them directly on spot, you can remove the --clean option. The ```--clean``` option is generally used to remove the rootfs/* details after the packaging.
 - you can (and generally must) use ```--with-deps``` for a first-level runtime dependencies, i.e. ```sudo ./flatpakify program --with-deps --install --rebuild-binary``` if your application has direct runtime dependencies
+- I recommend declaring ```PKGIDR``` somewhere before running this script, or export it in the bash terminal, in order to not _infect_ your actual HOST binary packages.
 
 ### Right now the script is very rudimentary, meaning we have a few caveats:
 - Due to the fact that flatpak always needs to have the application files compiled with --prefix=/app and encapsulate as such, we're using ```EPREFIX=/app``` to all built apps, and ```--root``` to point to the new local rootfs. This produces perfectly normal packages, but the application you are building __must necessarily have build support for such paths and prefixes__
