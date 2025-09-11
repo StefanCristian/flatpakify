@@ -68,7 +68,7 @@ Or, if you prefer git cloning and using the script locally:
 - Description management [based on autodetection]
 - Icons and links management of apps [based on autodetection]
 - Create own Gentoo Platform and SDK universally exported and hosted on Flathub, so everyone can use your runtime base
-- Create Gentoo runtime, for example a set of development libraries built on Gentoo which can be exported in order to be used everywhere else
+- Create Gentoo runtime, for example a set of development libraries built on Gentoo which can be exported in order to be used in any other +-GNU Linux distribution
 - Implement some identification of already-present libs inside the Gentoo/Freedesktop Flatpak Platform & SDK in comparison with first level of runtime dependencies identified based on user given package.
 - Implement ```--use-dependencies-from-system``` (or something like this) option, in order for the application to use precompiled binaries from your $HOST $PKGIDR, instead of compiling them every time. I'm not sure this is ok, but most probably will be some of the most required features.
 - User requested stuff to github.com/stefancristian/flatpakify/issues
