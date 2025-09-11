@@ -392,7 +392,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
     
     emerge_env = os.environ.copy()
     emerge_env["FEATURES"] = EMERGE_FEATURES
-    emerge_env["PKGDIR"] = "/home/work/sources/flatpakify-with-portage/binpkgs/"
+    emerge_env["PKGDIR"] = os.environ.get("PKGDIR", f"{os.getcwd()}/binpkgs/")
     emerge_env["CONFIG_PROTECT"] = "-*"
     
     uses_cmake_meson = False
