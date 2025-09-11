@@ -328,7 +328,14 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
         all_runtime_deps = []
         for PKG in PKGS:
             try:
-                result = subprocess.run(["./first-level-runtime.py", PKG], capture_output=True, text=True, check=True)
+                rdeps_command = "flatpakify-check-rdeps"
+                if shutil.which(rdeps_command) is None:
+                    rdeps_command = "./flatpakify-check-rdeps.py"
+                    if not os.path.isfile(rdeps_command):
+                        log("Warning: Neither flatpakify-check-rdeps and ./flatpakify-check-rdeps.py found, building without dependencies")
+                        break
+                
+                result = subprocess.run([rdeps_command, PKG], capture_output=True, text=True, check=True)
                 runtime_deps = result.stdout.strip().split('\n')
                 runtime_deps = [dep for dep in runtime_deps if dep]
                 if runtime_deps:
@@ -339,7 +346,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
             except subprocess.CalledProcessError as e:
                 log(f"Warning: Failed to get runtime dependencies for {PKG}: {e}")
             except FileNotFoundError:
-                log("Warning: ./first-level-runtime.py not found, building without additional dependencies")
+                log("Warning: flatpakify-check-rdeps not found, building without additional dependencies")
                 break
         
         seen = set()
