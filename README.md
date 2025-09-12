@@ -58,6 +58,12 @@ Or, if you prefer git cloning and using the script locally:
 - You can (and generally must) use ```--with-deps``` for a first-level runtime dependencies, i.e. ```sudo flatpakify program --with-deps --install --rebuild-binary``` if your application has direct runtime dependencies
 - I recommend declaring ```PKGIDR``` somewhere before running this script, or export it in the bash terminal, in order to not _infect_ your actual HOST binary packages.
 - Don't overcomplicate things in your ebuild(s). The best ebuild is literally a empty one just like in my [example here](https://gitlab.com/argent/argent-ws/-/blob/master/app-admin/flatpakify/flatpakify-1.0.0.ebuild). If you have proper Makefiles, Meson builds, CMakeLists, and so forth, you'll observe that Portage knows exactly where to install them, how, and what configuration you can pass them - whole magic is already here.
+- If any of your files _escape_ the PREFIX, you must handle it with the source makefiles. You don't have to be profficient in making ebuilds, but in creating proper build/makefiles.
+- __ALWAYS__ test your application __BEFORE__ flatpakifying it so you can make sure it's flatpakify-able. Do it precisely like this:
+
+```sudo EPREFIX=/app emerge -va --root=/my/absolute/path/to/my/application/source/build_dir myapp```
+
+
 
 ### Right now the script is very rudimentary, meaning we have a few caveats:
 - If your app doesn't find a specific library (for example not present in the flatpak), you must use ```equery b <missing-library>``` and add that package to the ```flatpakify category/package category/dependency1 category/dependency2``` list of to-be-installed such as example ```sudo flatpakify games-strategy/seven-kingdoms c-ares nghttp3 --install...```. This is a caveat which I will be treating in the following period.
