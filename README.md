@@ -49,14 +49,15 @@ Or, if you prefer git cloning and using the script locally:
 
 ```flatpak install flathub org.freedesktop.Sdk//24.08```
 
-- do __NOT__ run as root, only regular user with __sudo__
-- always run from a controlled, temporary directory when you are building your apps, preferably in your app source directory
-- category/package is __mandatory__, you can't use ```flatpakify randompackage```
-- you must use ```--command=[your executable]``` if your executable name is not identical to ```${PN}``` [(from Gentoo Developer Manual)](https://devmanual.gentoo.org/ebuild-writing/variables/). If your app command is identical to ```${PN}```, you don't have to specify any ```--command```, for example many applications are following proper MAKEFILE rules to ```make install``` where their variables are set to install, based on the actual name of the package.
-- if you have to recompile it everytime, you must use ```--rebuild-binary```; it's in the TODO list to skip dependencies to be compiled every time.
-- if you want to keep the rootfs/app/ files and debug them directly on spot, you can remove the --clean option. The ```--clean``` option is generally used to remove the rootfs/* details after the packaging.
-- you can (and generally must) use ```--with-deps``` for a first-level runtime dependencies, i.e. ```sudo flatpakify program --with-deps --install --rebuild-binary``` if your application has direct runtime dependencies
+- Do __NOT__ run as root, only regular user with __sudo__
+- Always run from a controlled, temporary directory when you are building your apps, preferably in your app source directory
+- Category/package is __mandatory__, you can't use ```flatpakify randompackage```
+- You must use ```--command=[your executable]``` if your executable name is not identical to ```${PN}``` [(from Gentoo Developer Manual)](https://devmanual.gentoo.org/ebuild-writing/variables/). If your app command is identical to ```${PN}```, you don't have to specify any ```--command```, for example many applications are following proper MAKEFILE rules to ```make install``` where their variables are set to install, based on the actual name of the package.
+- If you have to recompile it everytime, you must use ```--rebuild-binary```; it's in the TODO list to skip dependencies to be compiled every time.
+- If you want to keep the rootfs/app/ files and debug them directly on spot, you can remove the --clean option. The ```--clean``` option is generally used to remove the rootfs/* details after the packaging.
+- You can (and generally must) use ```--with-deps``` for a first-level runtime dependencies, i.e. ```sudo flatpakify program --with-deps --install --rebuild-binary``` if your application has direct runtime dependencies
 - I recommend declaring ```PKGIDR``` somewhere before running this script, or export it in the bash terminal, in order to not _infect_ your actual HOST binary packages.
+- Don't overcomplicate things in your ebuild(s). The best ebuild is literally a empty one just like in my example above. If you have proper Makefiles, Meson builds, CMakeLists, and so forth, you'll observe that Portage knows exactly where to install them, how, and what configuration you can pass them - whole magic is here.
 
 ### Right now the script is very rudimentary, meaning we have a few caveats:
 - If your app doesn't find a specific library (for example not present in the flatpak), you must use ```equery b <missing-library>``` and add that package to the ```flatpakify category/package category/dependency1 category/dependency2``` list of to-be-installed such as example ```sudo flatpakify games-strategy/seven-kingdoms c-ares nghttp3 --install...```. This is a caveat which I will be treating in the following period.
