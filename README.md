@@ -30,6 +30,10 @@ Or, if you prefer git cloning and using the script locally:
 
 ```sudo ./flatpakify.py games-strategy/seven-kingdoms c-ares nghttp3 --bundle-name org.gentoo.sevenkingdoms.sevenkingdoms --with-deps --install --rebuild-binary --command=7kaa  --clean```
 
+In order to test it (you will also get all instructions how to install / uninstall / debug):
+
+```flatpak run org.gentoo.sevenkingdoms.sevenkingdoms```
+
 ### As you might see, the pattern is:
 
 ```sudo flatpakify [category/packagename] [some needed dependencies that are not correctly found early on, please read caveats bellow] --bundle-name org.gentoo.yourpackage.YourPackage --with-deps --install --rebuild-binary --command=[if not ${PN}] --clean```
