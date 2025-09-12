@@ -6,8 +6,11 @@ The purpose of this project is to:
 - Customize flatpaks however Gentoo lets you (CFLAGS, USE flags, everything)
 - To eliminate the need to write flatpaks manually anymore, and just write Gentoo regular ebuilds, this will benefit both developers, and Gentoo users
 
+# First thing first: Install Gentoo. <img src="https://www.gentoo.org/assets/img/logo/gentoo-g.png" alt="Gentoo Logo" width="40" height="40" align="center">
 
-# Instructions on how to use
+https://www.gentoo.org/get-started/
+
+# Instructions on how to use Flatpakify
 
 ### As example and since Seven Kingdoms (from 7kfans.com) is easily flatpakable, you can use it as it follows:
 
