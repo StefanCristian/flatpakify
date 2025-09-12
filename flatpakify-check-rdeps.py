@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# Unknown author and license
+# Modified by Stefan Cristian B. <stefan.cristian@rogentos.ro>
+# Purpose of the script:
+# Get first-level runtime dependencies with their specific versions.
+# Returns a list of =category/package-version strings ready for emerge.
 
 import sys
 import portage
@@ -6,12 +11,9 @@ from portage.dep import Atom
 from portage.exception import InvalidAtom, InvalidDependString
 
 def get_package_dependencies_with_versions(pkg_atom_str):
-    """
-    Get first-level runtime dependencies with their specific versions.
-    Returns a list of =category/package-version strings ready for emerge.
-    """
     try:
         portdb = portage.db[portage.root]["porttree"].dbapi
+        vardb = portage.db[portage.root]["vartree"].dbapi
         
         try:
             pkg_atom = Atom(pkg_atom_str)
@@ -49,7 +51,6 @@ def get_package_dependencies_with_versions(pkg_atom_str):
         dependency_atoms = []
         
         def extract_atoms(dep_list):
-            """Recursively extract atoms from dependency list"""
             for item in dep_list:
                 if isinstance(item, Atom):
                     dependency_atoms.append(item)
@@ -59,45 +60,59 @@ def get_package_dependencies_with_versions(pkg_atom_str):
         extract_atoms(deps)
         
         resolved_packages = []
+        orphaned_packages = []
         seen = set()
+        
+        all_installed = set(vardb.cpv_all())
         
         for dep_atom in dependency_atoms:
             if str(dep_atom) in seen:
                 continue
             seen.add(str(dep_atom))
             
-            best_dep_match = portdb.xmatch("bestmatch-visible", dep_atom)
-            if best_dep_match:
-                resolved_packages.append(f"={best_dep_match}")
-            else:
-                matches = portdb.xmatch("match-all", dep_atom)
-                if matches:
-                    resolved_packages.append(f"={matches[-1]}")
+            installed_matches = vardb.match(dep_atom)
+            
+            installed_matches = [cpv for cpv in installed_matches if cpv in all_installed]
+            
+            if installed_matches:
+                best_installed = portage.best(installed_matches)
+                
+                if portdb.cpv_exists(best_installed):
+                    resolved_packages.append(f"={best_installed}")
+                else:
+                    orphaned_packages.append(best_installed)
         
-        return resolved_packages
+        return resolved_packages, orphaned_packages
         
     except Exception as e:
         raise RuntimeError(f"Error processing {pkg_atom_str}: {e}")
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: ./first-level-runtime.py <category/package> or <package>", file=sys.stderr)
+        print("Usage: ./first-level-runtime.py <category/package>", file=sys.stderr)
         print("Examples:", file=sys.stderr)
         print("  ./first-level-runtime.py sys-apps/portage", file=sys.stderr)
-        print("  ./first-level-runtime.py firefox", file=sys.stderr)
         sys.exit(1)
     
     pkg_atom = sys.argv[1]
     
     try:
-        resolved_deps = get_package_dependencies_with_versions(pkg_atom)
+        resolved_deps, orphaned_deps = get_package_dependencies_with_versions(pkg_atom)
         
-        if not resolved_deps:
+        if orphaned_deps:
+            print("\nERROR: The following installed dependencies have no available ebuilds:", file=sys.stderr)
+            for orphan in orphaned_deps:
+                print(f"  {orphan}", file=sys.stderr)
+            print("The old package has been installed, but it has not been upgraded. Please upgrade your package, or maintain its ebuild in your overlay.\n", file=sys.stderr)
+            sys.exit(1)
+        
+        if not resolved_deps and not orphaned_deps:
+            print("No installed runtime dependencies found.", file=sys.stderr)
             sys.exit(0)
         
         for dep in resolved_deps:
             print(dep)
-    
+
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)

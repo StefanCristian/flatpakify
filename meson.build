@@ -34,7 +34,8 @@ install_data(
 )
 
 additional_scripts = [
-    'flatpakify-check-rdeps.py'
+    'flatpakify-check-rdeps.py',
+    'flatpakify-clean-precompiled.py'
 ]
 
 foreach script : additional_scripts

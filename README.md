@@ -10,7 +10,11 @@ The purpose of this project is to:
 
 https://www.gentoo.org/get-started/
 
-# Instructions on how to use Flatpakify
+# Second thing: Get used to making a ebuild.
+
+https://devmanual.gentoo.org/
+
+# Now: Instructions on how to use Flatpakify
 
 ### As example and since Seven Kingdoms (from 7kfans.com) is easily flatpakable, you can use it as it follows:
 
@@ -65,7 +69,26 @@ In order to test it (you will also get all instructions how to install / uninsta
 - If any of your files _escape_ the PREFIX, you must handle it with the source makefiles. You don't have to be profficient in making ebuilds, but in creating proper build/makefiles.
 - __ALWAYS__ test your application __BEFORE__ flatpakifying it so you can make sure it's flatpakify-able. Do it precisely like this:
 
-```sudo EPREFIX=/app emerge -va --root=/my/absolute/path/to/my/application/source/build_dir myapp```
+```sudo EPREFIX=/app emerge -va --root=/my/absolute/path/to/my/application/source/build_dir category/myapplication```
+
+
+### Cleaning after compiling
+
+- When using ```--rebuild-binary```, it will always compile everything, including the dependencies. It can be a long time.
+- If you don't want to recompile the dependencies of your application every time, you can remove the ```--rebuild-binary``` option, but that means you need to clean the gentoo archived precompiled package made by the main command.
+- In order to clean it, you have to manually remove it from the local __binpkgs__ folder like this:
+
+```sudo rm -rf ./binpkgs/your_package_category/your_package_name/*```
+
+```sudo EPREFIX="/app" PKGDIR="./binpkgs" emaint binhost --fix```
+
+- Or, if you have the flatpakify package installed via Gentoo, you can run:
+
+```sudo flatpakify-clean-precompiled <CATEGORY>/<PACKAGENAME>```
+
+i.e.:
+
+```sudo flatpakify-clean-precompiled games-strategy/seven-kingdoms```
 
 
 
@@ -84,5 +107,5 @@ In order to test it (you will also get all instructions how to install / uninsta
 - Create own Gentoo Platform and SDK universally exported and hosted on Flathub, so everyone can use your runtime base
 - Create Gentoo runtime, for example a set of development libraries built on Gentoo which can be exported in order to be used in any other +-GNU Linux distribution
 - Implement some identification of already-present libs inside the Gentoo/Freedesktop Flatpak Platform & SDK in comparison with first level of runtime dependencies identified based on user given package.
-- Implement ```--use-dependencies-from-system``` (or something like this) option, in order for the application to use precompiled binaries from your $HOST $PKGIDR, instead of compiling them every time. I'm not sure this is ok, but most probably will be some of the most required features.
+- Implement ```--use-dependencies-from-system``` (or something like this) option, in order for the application to use precompiled binaries from your $HOST $PKGIDR, instead of compiling them every time. I'm not sure this is ok, but most probably will be some of the most required features. The dependecies from the system option must compare with all the flatpak freedesktop runtime libraries that are already installed inside the runtime, so that we identify the exact packages and libraries that we should exclude from recompiling and packaging in our flatpak. Otherwise, this option would take __all__ runtime dependencies and we don't need all of them.
 - User requested stuff to github.com/stefancristian/flatpakify/issues
