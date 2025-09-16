@@ -36,20 +36,8 @@ flatpakify_script = configure_file(
     copy : true
 )
 
-flatpakify_py_script = configure_file(
-    input : 'flatpakify.py',
-    output : 'flatpakify.py',
-    copy : true
-)
-
 install_data(
     flatpakify_script,
-    install_dir : get_option('bindir'),
-    install_mode : 'rwxr-xr-x'
-)
-
-install_data(
-    flatpakify_py_script,
     install_dir : get_option('bindir'),
     install_mode : 'rwxr-xr-x'
 )
