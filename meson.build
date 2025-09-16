@@ -9,6 +9,8 @@ py_mod = import('python')
 fs = import('fs')
 py = py_mod.find_installation()
 
+python_fix_shebang = find_program('python_fix_shebang', required: false)
+
 flatpakify_script = configure_file(
     input : 'flatpakify.py',
     output : 'flatpakify',
@@ -64,5 +66,14 @@ if fs.exists('INSTALL.md')
     install_data(
         'INSTALL.md',
         install_dir : get_option('datadir') / 'doc' / ('flatpakify-' + meson.project_version())
+    )
+endif
+
+if python_fix_shebang.found()
+    meson.add_install_script(
+        python_fix_shebang,
+        '$MESON_INSTALL_DESTDIR_PREFIX/' + get_option('bindir') + '/flatpakify',
+        '$MESON_INSTALL_DESTDIR_PREFIX/' + get_option('bindir') + '/flatpakify-check-rdeps',
+        '$MESON_INSTALL_DESTDIR_PREFIX/' + get_option('bindir') + '/flatpakify-clean-precompiled'
     )
 endif
