@@ -823,7 +823,7 @@ modules:
         RUNTIME_META
 """
     else:
-        manifest_content = f"""app-id: {APP_ID}
+        manifest_part1 = f"""app-id: {APP_ID}
 runtime: {RUNTIME}
 runtime-version: "{FLATPAK_RUNTIME_VERSION}"
 sdk: {RUNTIME.replace('Platform', 'Sdk')}
@@ -835,7 +835,9 @@ modules:
       - type: file
         path: {os.path.basename(TARBALL)}
     build-commands:
-      - tar --no-same-owner --no-same-permissions -xaf {os.path.basename(TARBALL)}
+      - tar --no-same-owner --no-same-permissions -xaf {os.path.basename(TARBALL)}"""
+        
+        manifest_part2 = """
       - |
         # Since we use EPREFIX=/app, the files should already be in the app/ directory
         if [ -d app ]; then
@@ -870,12 +872,16 @@ modules:
         if [ -d /app/usr/lib ] && [ ! -d /app/lib ]; then
           echo "Creating symlink /app/lib -> usr/lib for library compatibility"
           ln -sf usr/lib /app/lib
-        fi
+        fi"""
+        
+        manifest_part3 = f"""
       - |
         # Create extension directories for runtime dependencies
         for ext_dir in $(echo "{' '.join(FLATPAK_RDEPS)}" | tr ' ' '\\n' | sed 's|.*/||' | sed 's|-|.|g' | sed 's|^|org.gentoo.|'); do
           mkdir -p "/app/extensions/$ext_dir"
-        done
+        done"""
+        
+        manifest_part4 = """
       - |
         # Create wrapper scripts for executables to set LD_LIBRARY_PATH
         if [ -d /app/usr/bin ]; then
@@ -888,22 +894,26 @@ modules:
               # Create wrapper script in place of original binary
               echo '#!/bin/bash' > "$exe"
               echo 'export LD_LIBRARY_PATH="/app/usr/lib64:/app/lib64:/usr/lib64:$LD_LIBRARY_PATH"' >> "$exe"
-              echo "exec \"/app/usr/bin/$exe_name.real\" \"\$@\"" >> "$exe"
+              echo "exec \"/app/usr/bin/$exe_name.real\" \\"\\$@\\"" >> "$exe"
               chmod +x "$exe"
             fi
           done
         fi
 """
         
+        manifest_content = manifest_part1 + manifest_part2 + manifest_part3 + manifest_part4
+        
         if FLATPAK_GUI and DESKTOP_FILE:
-            manifest_content += f"""
+            desktop_part1 = f"""
   - name: desktop-integration
     buildsystem: simple
     sources:
       - type: file
         path: {os.path.basename(TARBALL)}
     build-commands:
-      - tar --no-same-owner --no-same-permissions -xaf {os.path.basename(TARBALL)}
+      - tar --no-same-owner --no-same-permissions -xaf {os.path.basename(TARBALL)}"""
+            
+            desktop_part2 = """
       - |
         # Copy desktop files and icons from the app structure (EPREFIX location)
         if [ -d app/share/applications ]; then
@@ -926,6 +936,7 @@ modules:
           cp -a usr/share/icons/* /app/share/icons/
         fi
 """
+            manifest_content += desktop_part1 + desktop_part2
     
     with open(MANIFEST, "w") as f:
         f.write(manifest_content)
