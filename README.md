@@ -53,9 +53,9 @@ In order to test it (you will also get all instructions how to install / uninsta
 
 ```flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo```
 
-```flatpak install flathub org.freedesktop.Platform//24.08```
+```sudo flatpak install flathub org.freedesktop.Platform//24.08```
 
-```flatpak install flathub org.freedesktop.Sdk//24.08```
+```sudo flatpak install flathub org.freedesktop.Sdk//24.08```
 
 - Do __NOT__ run as root, only regular user with __sudo__
 - Always run from a controlled, temporary directory when you are building your apps, preferably in your app source directory
