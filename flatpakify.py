@@ -18,6 +18,7 @@ RUNTIME = "org.freedesktop.Platform"
 FLATPAK_RUNTIME_VERSION = "24.08"
 FLATPAK_APP_VERSION = "1.0"
 BUNDLE_LIBS = False
+SUDO_COMMAND = "sudo"
 INSTALL = False
 RUN_AFTER = False
 NETWORK = False
@@ -51,6 +52,7 @@ def parse_args():
     global BUNDLE_LIBS, INSTALL, RUN_AFTER, NETWORK, FLATPAK_AUDIO, FS_ARGS
     global CLEAN_BUILD, CLEAN_AFTER, VERBOSE, USE_KDE_RUNTIME, WITH_DEPS
     global FLATPAK_RDEPS, BUILD_AS_RUNTIME, BUILD_AS_DATA, CUSTOM_PREFIX, EMERGE_REBUILD_BINARY
+    global SUDO_COMMAND
     
     parser = argparse.ArgumentParser(description='Build any Gentoo package with /app prefix for Flatpak')
     parser.add_argument('packages', nargs='*', help='One or more Gentoo packages from your system overlays')
@@ -77,6 +79,7 @@ def parse_args():
     parser.add_argument('--keep-build', action='store_true', help='Keep build directories after completion')
     parser.add_argument('--rebuild-binary', action='store_true', help='Force rebuild from source')
     parser.add_argument('--verbose', action='store_true', help='Show detailed build output')
+    parser.add_argument('--sudo-command', default='sudo', help='Privilege escalation command (default: sudo)')
     
     args = parser.parse_args()
     
@@ -126,6 +129,7 @@ def parse_args():
         CLEAN_AFTER = False
     EMERGE_REBUILD_BINARY = args.rebuild_binary
     VERBOSE = args.verbose
+    SUDO_COMMAND = args.sudo_command
     
     return BUNDLE_NAME
 
@@ -134,7 +138,7 @@ def main():
     
     BUNDLE_NAME = parse_args()
     
-    need("sudo")
+    need(SUDO_COMMAND)
     need("emerge")
     need("flatpak")
     need("flatpak-builder")
@@ -195,7 +199,7 @@ def main():
     log(f"Building: {' '.join(PKGS)}")
     
     log("Setting up build environment...")
-    subprocess.run(["sudo", "mkdir", "-p", f"{ROOTFS}/etc/portage"], check=False)
+    subprocess.run([SUDO_COMMAND, "mkdir", "-p", f"{ROOTFS}/etc/portage"], check=False)
     
     portage_files = [
         ("make.conf", "file"),
@@ -212,13 +216,13 @@ def main():
         dst = f"{ROOTFS}/etc/portage/"
         if os.path.exists(src):
             if ptype == "file":
-                subprocess.run(["sudo", "cp", "-a", src, dst], check=False)
+                subprocess.run([SUDO_COMMAND, "cp", "-a", src, dst], check=False)
             else:
-                subprocess.run(["sudo", "cp", "-aR", src, dst], check=False)
+                subprocess.run([SUDO_COMMAND, "cp", "-aR", src, dst], check=False)
     
     if os.path.exists("/etc/portage/package.env/00-argent.package.env"):
-        subprocess.run(["sudo", "mkdir", "-p", f"{ROOTFS}/etc/portage/package.env"], check=True)
-        subprocess.run(["sudo", "cp", "-a", "/etc/portage/package.env/00-argent.package.env", 
+        subprocess.run([SUDO_COMMAND, "mkdir", "-p", f"{ROOTFS}/etc/portage/package.env"], check=True)
+        subprocess.run([SUDO_COMMAND, "cp", "-a", "/etc/portage/package.env/00-argent.package.env", 
                        f"{ROOTFS}/etc/portage/package.env/"], check=False)
 
     PROFILE_PATH = ""
@@ -243,10 +247,10 @@ def main():
     
     if BUILD_AS_DATA:
         log("Creating minimal profile for data-only runtime build...")
-        subprocess.run(["sudo", "mkdir", "-p", f"{ROOTFS}/etc/portage/profile"], check=True)
+        subprocess.run([SUDO_COMMAND, "mkdir", "-p", f"{ROOTFS}/etc/portage/profile"], check=True)
 
         with open(f"{ROOTFS}/etc/portage/profile/packages", "w") as f:
-            subprocess.run(["sudo", "tee", f"{ROOTFS}/etc/portage/profile/packages"],
+            subprocess.run([SUDO_COMMAND, "tee", f"{ROOTFS}/etc/portage/profile/packages"],
                          input=b"# Minimal packages list - avoid system packages for data-only runtimes\n",
                          stdout=subprocess.DEVNULL, check=True)
         
@@ -256,13 +260,13 @@ USE="-* minimal"
 # Mask everything except data directories
 INSTALL_MASK="/bin /sbin /lib /lib64 /usr/bin /usr/sbin /usr/lib /usr/lib64 /lib/debug /usr/lib/debug"
 """
-        subprocess.run(["sudo", "tee", f"{ROOTFS}/etc/portage/make.conf"], 
+        subprocess.run([SUDO_COMMAND, "tee", f"{ROOTFS}/etc/portage/make.conf"], 
                      input=make_conf_content.encode(), stdout=subprocess.DEVNULL, check=True)
     
-    subprocess.run(["sudo", "ln", "-sfn", PROFILE_PATH, f"{ROOTFS}/etc/portage/make.profile"], check=True)
+    subprocess.run([SUDO_COMMAND, "ln", "-sfn", PROFILE_PATH, f"{ROOTFS}/etc/portage/make.profile"], check=True)
     
     log("Creating Flatpak build environment...")
-    subprocess.run(["sudo", "mkdir", "-p", f"{ROOTFS}/etc/portage/env"], check=True)
+    subprocess.run([SUDO_COMMAND, "mkdir", "-p", f"{ROOTFS}/etc/portage/env"], check=True)
     
     
     cmake_meson_env = f"""# CMake/Meson packages - install to EPREFIX/usr for consistency
@@ -272,19 +276,19 @@ MESON_INSTALL_PREFIX="{EPREFIX}{PREFIX}"
 MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
 """
     
-    subprocess.run(["sudo", "tee", f"{ROOTFS}/etc/portage/env/flatpak-cmake-meson"], 
+    subprocess.run([SUDO_COMMAND, "tee", f"{ROOTFS}/etc/portage/env/flatpak-cmake-meson"], 
                  input=cmake_meson_env.encode(), stdout=subprocess.DEVNULL, check=True)
     
     other_env = f"""# Environment for non-CMake/Meson packages
 # EPREFIX is set via emerge environment variable
 """
     
-    subprocess.run(["sudo", "tee", f"{ROOTFS}/etc/portage/env/flatpak-other"], 
+    subprocess.run([SUDO_COMMAND, "tee", f"{ROOTFS}/etc/portage/env/flatpak-other"], 
                  input=other_env.encode(), stdout=subprocess.DEVNULL, check=True)
     
-    subprocess.run(["sudo", "mkdir", "-p", f"{ROOTFS}/etc/portage/package.env"], check=True)
+    subprocess.run([SUDO_COMMAND, "mkdir", "-p", f"{ROOTFS}/etc/portage/package.env"], check=True)
     
-    subprocess.run(["sudo", "touch", f"{ROOTFS}/etc/portage/package.env/flatpak"], check=True)
+    subprocess.run([SUDO_COMMAND, "touch", f"{ROOTFS}/etc/portage/package.env/flatpak"], check=True)
     
     for PKG in PKGS:
         EBUILD_PATH = ""
@@ -306,7 +310,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
                     log(f"Package {PKG} uses other build system - using EXTRA_ECONF")
                     env_assignment = f"{PKG} flatpak-other\n"
                 
-                subprocess.run(["sudo", "sh", "-c", f"echo '{env_assignment.strip()}' >> {ROOTFS}/etc/portage/package.env/flatpak"], check=True)
+                subprocess.run([SUDO_COMMAND, "sh", "-c", f"echo '{env_assignment.strip()}' >> {ROOTFS}/etc/portage/package.env/flatpak"], check=True)
     
     if USE_KDE_RUNTIME:
         RUNTIME = "org.kde.Platform"
@@ -370,7 +374,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
                 emerge_env["EPREFIX"] = EPREFIX
                 log(f"Setting EPREFIX={EPREFIX} for dependencies")
             
-            emerge_cmd = ["sudo"] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX"]]
+            emerge_cmd = [SUDO_COMMAND] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX"]]
             emerge_cmd += ["emerge"] + EMERGE_OPTS.split() + [f"--root={ROOTFS}", f"--config-root={ROOTFS}"] + unique_deps
             
             result = subprocess.run(emerge_cmd, capture_output=False)
@@ -433,7 +437,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
     
     packages_to_emerge = PKGS_TO_BUILD if 'PKGS_TO_BUILD' in locals() else PKGS
     
-    emerge_cmd = ["sudo"] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX"]]
+    emerge_cmd = [SUDO_COMMAND] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX"]]
     emerge_cmd += ["emerge"] + EMERGE_OPTS.split() + [f"--root={ROOTFS}", f"--config-root={ROOTFS}"] + packages_to_emerge
     
     result = subprocess.run(emerge_cmd, capture_output=False)
@@ -473,7 +477,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
     ]
     
     for dir_path in dirs_to_remove:
-        subprocess.run(["sudo", "rm", "-rf", dir_path], check=False)
+        subprocess.run([SUDO_COMMAND, "rm", "-rf", dir_path], check=False)
     
     if BUILD_AS_DATA:
         log("Filtering for data-only package - removing all non-data files...")
@@ -495,7 +499,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
         ]
         
         for dir_path in data_remove_dirs:
-            subprocess.run(["sudo", "rm", "-rf", dir_path], check=False)
+            subprocess.run([SUDO_COMMAND, "rm", "-rf", dir_path], check=False)
         
         log("Keeping only data directories (share/...)")
         
@@ -511,7 +515,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
         log("Data-only filtering completed")
     else:
         if os.path.exists(f"{ROOTFS}/var"):
-            subprocess.run(["sudo", "rmdir", f"{ROOTFS}/var"], check=False)
+            subprocess.run([SUDO_COMMAND, "rmdir", f"{ROOTFS}/var"], check=False)
     
     # Since we're using EPREFIX and proper build environments, the rootfs should already 
     # have the correct structure. We only need minimal adjustments for special cases.
@@ -521,17 +525,17 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
         
         if os.path.isdir(f"{ROOTFS}/usr/share"):
             log("Moving /usr/share to root level for data extension...")
-            subprocess.run(["sudo", "mkdir", "-p", f"{ROOTFS}/share"], check=True)
-            subprocess.run(["sudo", "sh", "-c", f"mv {ROOTFS}/usr/share/* {ROOTFS}/share/ 2>/dev/null || true"], check=False)
-            subprocess.run(["sudo", "rmdir", f"{ROOTFS}/usr/share"], check=False)
-            subprocess.run(["sudo", "rmdir", f"{ROOTFS}/usr"], check=False)
+            subprocess.run([SUDO_COMMAND, "mkdir", "-p", f"{ROOTFS}/share"], check=True)
+            subprocess.run([SUDO_COMMAND, "sh", "-c", f"mv {ROOTFS}/usr/share/* {ROOTFS}/share/ 2>/dev/null || true"], check=False)
+            subprocess.run([SUDO_COMMAND, "rmdir", f"{ROOTFS}/usr/share"], check=False)
+            subprocess.run([SUDO_COMMAND, "rmdir", f"{ROOTFS}/usr"], check=False)
         
         if os.path.isdir(f"{ROOTFS}/app/share"):
             log("Moving /app/share to root level for data extension...")
-            subprocess.run(["sudo", "mkdir", "-p", f"{ROOTFS}/share"], check=True)
-            subprocess.run(["sudo", "sh", "-c", f"mv {ROOTFS}/app/share/* {ROOTFS}/share/ 2>/dev/null || true"], check=False)
-            subprocess.run(["sudo", "rmdir", f"{ROOTFS}/app/share"], check=False)
-            subprocess.run(["sudo", "rmdir", f"{ROOTFS}/app"], check=False)
+            subprocess.run([SUDO_COMMAND, "mkdir", "-p", f"{ROOTFS}/share"], check=True)
+            subprocess.run([SUDO_COMMAND, "sh", "-c", f"mv {ROOTFS}/app/share/* {ROOTFS}/share/ 2>/dev/null || true"], check=False)
+            subprocess.run([SUDO_COMMAND, "rmdir", f"{ROOTFS}/app/share"], check=False)
+            subprocess.run([SUDO_COMMAND, "rmdir", f"{ROOTFS}/app"], check=False)
         
         if not os.path.isdir(f"{ROOTFS}/share") or not os.listdir(f"{ROOTFS}/share"):
             log("Warning: No data files found in /share directory")
@@ -542,7 +546,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
     elif BUILD_AS_RUNTIME:
         if os.path.isdir(f"{ROOTFS}/app") and not os.path.isdir(f"{ROOTFS}/usr"):
             log("Moving files from /app to /usr for runtime build...")
-            subprocess.run(["sudo", "mv", f"{ROOTFS}/app", f"{ROOTFS}/usr"], check=True)
+            subprocess.run([SUDO_COMMAND, "mv", f"{ROOTFS}/app", f"{ROOTFS}/usr"], check=True)
         
         if not os.path.isdir(f"{ROOTFS}/usr") or not os.listdir(f"{ROOTFS}/usr"):
             error("Failed to create /usr structure for runtime")
@@ -552,7 +556,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
         if not os.path.isdir(f"{ROOTFS}/app"):
             if os.path.isdir(f"{ROOTFS}/usr"):
                 log("Warning: Files installed to /usr instead of /app, moving to /app...")
-                subprocess.run(["sudo", "mv", f"{ROOTFS}/usr", f"{ROOTFS}/app"], check=True)
+                subprocess.run([SUDO_COMMAND, "mv", f"{ROOTFS}/usr", f"{ROOTFS}/app"], check=True)
             else:
                 error("No application files found in /app or /usr after build")
         
@@ -658,7 +662,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
         
         if LIBS_TO_BUNDLE:
             LIB_BUNDLE_DIR = f"{ROOTFS}{EPREFIX}{PREFIX}/lib64"
-            subprocess.run(["sudo", "mkdir", "-p", LIB_BUNDLE_DIR], check=True)
+            subprocess.run([SUDO_COMMAND, "mkdir", "-p", LIB_BUNDLE_DIR], check=True)
             seen = set()
             for lib_path in LIBS_TO_BUNDLE:
                 if os.path.isfile(lib_path) and lib_path not in seen:
@@ -667,9 +671,9 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
                     
                     target_path = f"{LIB_BUNDLE_DIR}/{os.path.basename(lib_path)}"
                     if os.path.islink(target_path):
-                        subprocess.run(["sudo", "rm", target_path], check=False)
+                        subprocess.run([SUDO_COMMAND, "rm", target_path], check=False)
                     
-                    subprocess.run(["sudo", "cp", "-L", lib_path, f"{LIB_BUNDLE_DIR}/"], check=True)
+                    subprocess.run([SUDO_COMMAND, "cp", "-L", lib_path, f"{LIB_BUNDLE_DIR}/"], check=True)
                     
                     lib_dir = os.path.dirname(lib_path)
                     lib_base = os.path.basename(lib_path)
@@ -682,10 +686,10 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
                             if lib_base in link_target or link_target in lib_base or os.path.basename(link_target) == lib_base:
                                 symlink_target_path = f"{LIB_BUNDLE_DIR}/{symlink_name}"
                                 if os.path.islink(symlink_target_path):
-                                    subprocess.run(["sudo", "rm", symlink_target_path], check=False)
+                                    subprocess.run([SUDO_COMMAND, "rm", symlink_target_path], check=False)
                                 
                                 target_file = os.path.basename(lib_path)
-                                subprocess.run(["sudo", "ln", "-sf", target_file, f"{LIB_BUNDLE_DIR}/{symlink_name}"], check=True)
+                                subprocess.run([SUDO_COMMAND, "ln", "-sf", target_file, f"{LIB_BUNDLE_DIR}/{symlink_name}"], check=True)
                                 log(f"    Creating symlink: {symlink_name} -> {target_file}")
         else:
             log("  No additional libraries needed")
@@ -698,8 +702,8 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
         subprocess.run(["ls", "-la", f"{ROOTFS}/"], check=False)
     
     os.chdir(ROOTFS)
-    subprocess.run(["sudo", "tar", "--no-same-owner", "--no-same-permissions", "-I", "zstd -19 -T0", "-cf", TARBALL, "."], check=True)
-    subprocess.run(["sudo", "chown", f"{os.getuid()}:{os.getgid()}", TARBALL], check=True)
+    subprocess.run([SUDO_COMMAND, "tar", "--no-same-owner", "--no-same-permissions", "-I", "zstd -19 -T0", "-cf", TARBALL, "."], check=True)
+    subprocess.run([SUDO_COMMAND, "chown", f"{os.getuid()}:{os.getgid()}", TARBALL], check=True)
     os.chdir(WORK_DIR)
     
     try:
