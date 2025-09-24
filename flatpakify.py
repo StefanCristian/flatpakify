@@ -370,11 +370,17 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
             emerge_env["PKGDIR"] = os.environ.get("PKGDIR", f"{os.getcwd()}/binpkgs/")
             emerge_env["CONFIG_PROTECT"] = "-*"
             
+            if EMERGE_REBUILD_BINARY:
+                default_opts = "--rebuilt-binaries"
+            else:
+                default_opts = "--getbinpkg --rebuilt-binaries"
+            emerge_env["EMERGE_DEFAULT_OPTS"] = os.environ.get("EMERGE_DEFAULT_OPTS", default_opts)
+            
             if not BUILD_AS_RUNTIME and not BUILD_AS_DATA:
                 emerge_env["EPREFIX"] = EPREFIX
                 log(f"Setting EPREFIX={EPREFIX} for dependencies")
             
-            emerge_cmd = [SUDO_COMMAND] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX"]]
+            emerge_cmd = [SUDO_COMMAND] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX", "EMERGE_DEFAULT_OPTS"]]
             emerge_cmd += ["emerge"] + EMERGE_OPTS.split() + [f"--root={ROOTFS}", f"--config-root={ROOTFS}"] + unique_deps
             
             result = subprocess.run(emerge_cmd, capture_output=False)
@@ -405,6 +411,12 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
     emerge_env["FEATURES"] = EMERGE_FEATURES
     emerge_env["PKGDIR"] = os.environ.get("PKGDIR", f"{os.getcwd()}/binpkgs/")
     emerge_env["CONFIG_PROTECT"] = "-*"
+    
+    if EMERGE_REBUILD_BINARY:
+        default_opts = "--rebuilt-binaries"
+    else:
+        default_opts = "--getbinpkg --rebuilt-binaries"
+    emerge_env["EMERGE_DEFAULT_OPTS"] = os.environ.get("EMERGE_DEFAULT_OPTS", default_opts)
     
     uses_cmake_meson = False
     if not BUILD_AS_RUNTIME and not BUILD_AS_DATA:
@@ -437,7 +449,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
     
     packages_to_emerge = PKGS_TO_BUILD if 'PKGS_TO_BUILD' in locals() else PKGS
     
-    emerge_cmd = [SUDO_COMMAND] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX"]]
+    emerge_cmd = [SUDO_COMMAND] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX", "EMERGE_DEFAULT_OPTS"]]
     emerge_cmd += ["emerge"] + EMERGE_OPTS.split() + [f"--root={ROOTFS}", f"--config-root={ROOTFS}"] + packages_to_emerge
     
     result = subprocess.run(emerge_cmd, capture_output=False)
