@@ -1168,8 +1168,8 @@ modules:
           ln -sf usr/lib64 /app/lib64
         fi
         if [ -d /app/usr/lib ] && [ ! -d /app/lib ]; then
-          echo "Creating symlink /app/lib -> usr/lib for library compatibility"
-          ln -sf usr/lib /app/lib
+          echo "Creating symlink /app/lib -> usr/lib64 for library compatibility"
+          ln -sf usr/lib64 /app/lib
         fi"""
         
         manifest_part3 = f"""
