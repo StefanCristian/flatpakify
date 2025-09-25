@@ -260,7 +260,7 @@ def main():
 {'FEATURES="-collision-protect -protect-owned -sandbox -usersandbox"' if EMERGE_REBUILD_BINARY else 'FEATURES="-collision-protect -protect-owned getbinpkg -sandbox -usersandbox"'}
 USE="-* minimal"
 # Mask everything except data directories
-INSTALL_MASK="/bin /sbin /lib /lib64 /usr/bin /usr/sbin /usr/lib /usr/lib64 /lib/debug /usr/lib/debug"
+INSTALL_MASK="/app/usr/include/ /bin /sbin /lib /lib64 /usr/bin /usr/sbin /usr/lib /usr/lib64 /lib/debug /usr/lib/debug"
 """
         subprocess.run([SUDO_COMMAND, "tee", f"{ROOTFS}/etc/portage/make.conf"], 
                      input=make_conf_content.encode(), stdout=subprocess.DEVNULL, check=True)
