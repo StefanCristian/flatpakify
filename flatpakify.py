@@ -1179,25 +1179,7 @@ modules:
           mkdir -p "/app/extensions/$ext_dir"
         done"""
         
-        manifest_part4 = """
-      - |
-        # Create wrapper scripts for executables to set LD_LIBRARY_PATH
-        if [ -d /app/usr/bin ]; then
-          for exe in /app/usr/bin/*; do
-            if [ -x "$exe" ] && [ ! -L "$exe" ]; then
-              exe_name=$(basename "$exe")
-              echo "Creating wrapper for $exe_name"
-              # Rename original binary to .real
-              mv "$exe" "$exe.real"
-              # Create wrapper script in place of original binary
-              echo '#!/bin/bash' > "$exe"
-              echo 'export LD_LIBRARY_PATH="/app/usr/lib64:/app/lib64:/usr/lib64:$LD_LIBRARY_PATH"' >> "$exe"
-              echo "exec \"/app/usr/bin/$exe_name.real\" \\"\\$@\\"" >> "$exe"
-              chmod +x "$exe"
-            fi
-          done
-        fi
-"""
+        manifest_part4 = ""
         
         manifest_content = manifest_part1 + manifest_part2 + manifest_part3 + manifest_part4
         
