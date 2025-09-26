@@ -24,7 +24,7 @@ If you want to install it via emerge:
 
 ```mkdir -p $HOME/my_flatpaks && cd $HOME/my_flatpaks```
 
-```sudo flatpakify games-strategy/seven-kingdoms c-ares nghttp3 --bundle-name org.gentoo.sevenkingdoms.sevenkingdoms --with-deps --install --rebuild-binary --command=7kaa  --clean```
+```sudo flatpakify games-strategy/seven-kingdoms --bundle-name org.gentoo.sevenkingdoms.sevenkingdoms --with-deps --install --rebuild-binary --command=7kaa  --clean```
 
 Or, if you prefer git cloning and using the script locally:
 
@@ -32,7 +32,7 @@ Or, if you prefer git cloning and using the script locally:
 
 ```cd flatpakify```
 
-```sudo ./flatpakify games-strategy/seven-kingdoms c-ares nghttp3 --bundle-name org.gentoo.sevenkingdoms.sevenkingdoms --with-deps --install --rebuild-binary --command=7kaa  --clean```
+```sudo ./flatpakify games-strategy/seven-kingdoms --bundle-name org.gentoo.sevenkingdoms.sevenkingdoms --with-deps --install --rebuild-binary --command=7kaa  --clean```
 
 In order to test it (you will also get all instructions how to install / uninstall / debug):
 
@@ -93,10 +93,10 @@ i.e.:
 
 
 ### Right now the script is very rudimentary, meaning we have a few caveats:
-- If your app doesn't find a specific library (for example not present in the flatpak), you must use ```equery b <missing-library>``` and add that package to the ```flatpakify category/package category/dependency1 category/dependency2``` list of to-be-installed such as example ```sudo flatpakify games-strategy/seven-kingdoms c-ares nghttp3 --install...```. This is a caveat which I will be treating in the following period.
+- If your app doesn't find a specific library (for example not present in the flatpak), you must use ```equery b <missing-library>``` and add that package to the ```flatpakify <packagename> dependency1 dependency2 dependency3``` list of to-be-installed such as example ```sudo flatpakify games-strategy/seven-kingdoms c-ares nghttp3 boost whatever --install...```. This is a caveat which I will be treating in the following period.
 - Due to the fact that flatpak always needs to have the application files compiled with --prefix=/app and encapsulate as such, we're using ```EPREFIX=/app``` to all built apps, and ```--root``` to point to the new local rootfs. This produces perfectly normal packages, but the application you are building __must necessarily have build support for such paths and prefixes__
 - There's no description category or links category implemented as options, I will have to implement them in time. Currently only the functional part is the most important, so that we can run the flatpaks easy.
-- The ___runtime dependencies (of your app) must mandatory be installed in the HOST system___ before you compile your program. So, give it a go and compile your program first with ```emerge -v myapplication``` after writing your _empty_ ebuild [(example here)](https://gitlab.com/argent/argent-ws/-/blob/master/app-admin/flatpakify/flatpakify-1.0.0.ebuild), you anyway have to do this manually before flatpakification. But the fix to this will be added in TODO in the future for your programs to use encapsulated runtime libraries which are going to be used in your applications in the same location they're going to be built. It's not a hard TODO, but for the moment it makes the developer responsible on how Gentoo dependencies work in the system, and how you build your application.
+- Your app's ___runtime dependencies must mandatory be installed in the HOST system___ before you compile your program. So, give it a go and compile your program first with ```sudo EPREFIX="/app" --root=/absolutepath/tolocal/builddir emerge -v myapplication``` after writing your _empty_ ebuild [(example here)](https://gitlab.com/argent/argent-ws/-/blob/master/app-admin/flatpakify/flatpakify-1.0.0.ebuild), you anyway have to do this manually before flatpakification. But the fix to this will be added in TODO in the future for your programs to use encapsulated runtime libraries which are going to be used in your applications in the same location they're going to be built. It's not a hard TODO, but for the moment it makes the developer responsible on how Gentoo dependencies work in the system, and how you build your application.
 - I have not treated complex situations yet, I have tested with C/C++ applications for the moment, so I do not know (yet) how RUST, GO, NodeJS, or others behave. It's a work in progress.
 
 ### TODO:
