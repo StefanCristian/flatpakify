@@ -65,7 +65,7 @@ def parse_args():
     parser.add_argument('--app-version', default='1.0', help='Flatpak app/runtime version')
     parser.add_argument('--use-kde-runtime', action='store_true', help='Use KDE runtime for KDE/Qt applications')
     parser.add_argument('--set-prefix', help='Override installation prefix')
-    parser.add_argument('--with-deps', action='store_true', help='Build with runtime dependencies')
+    parser.add_argument('--with-deps', action='store_true', help='Build with only first level runtime dependencies')
     parser.add_argument('--bundle-libs', action='store_true', help='Bundle libraries from host system')
     parser.add_argument('--flatpak-rdep', action='append', default=[], help='Add Flatpak runtime dependency')
     parser.add_argument('--build-as-runtime', action='store_true', help='Build as custom Flatpak runtime')
