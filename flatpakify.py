@@ -208,6 +208,7 @@ def main():
         ("package.mask", "dir"),
         ("package.unmask", "dir"),
         ("repos.conf", "dir"),
+        ("binrepos.conf", "dir"),
         ("env", "dir"),
     ]
     
@@ -267,6 +268,8 @@ INSTALL_MASK="/app/usr/include/ /bin /sbin /lib /lib64 /usr/bin /usr/sbin /usr/l
     
     subprocess.run([SUDO_COMMAND, "ln", "-sfn", PROFILE_PATH, f"{ROOTFS}/etc/portage/make.profile"], check=True)
     
+    candidate_packages = []
+    
     if RUNTIME == "org.freedesktop.Platform":
         log("Creating package.provided for freedesktop platform...")
         subprocess.run([SUDO_COMMAND, "mkdir", "-p", f"{ROOTFS}/etc/portage/profile"], check=True)
@@ -316,6 +319,7 @@ INSTALL_MASK="/app/usr/include/ /bin /sbin /lib /lib64 /usr/bin /usr/sbin /usr/l
             "dev-libs/gmp",
             "dev-libs/gobject-introspection",
             "dev-libs/hyphen",
+            "dev-libs/icu",
             "dev-libs/json-glib",
             "dev-libs/libffi",
             "dev-libs/libgcrypt",
@@ -532,18 +536,17 @@ INSTALL_MASK="/app/usr/include/ /bin /sbin /lib /lib64 /usr/bin /usr/sbin /usr/l
                                 with open(pf_file, 'r') as f:
                                     pf_value = f.read().strip()
                                     installed_packages.append(f"{category}/{pf_value}")
-                                    break
                             except:
                                 pass
         
         if installed_packages:
+            installed_packages.sort()
             provided_content = '\n'.join(installed_packages) + '\n'
             
             with open("package.provided", "w") as f:
                 f.write(provided_content)
             
             log(f"Created package.provided with {len(installed_packages)} installed packages")
-            
             subprocess.run([SUDO_COMMAND, "cp", "package.provided", f"{ROOTFS}/etc/portage/profile/package.provided"], check=True)
 
     
@@ -662,8 +665,13 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
                 emerge_env["EPREFIX"] = EPREFIX
                 log(f"Setting EPREFIX={EPREFIX} for dependencies")
             
+            deps_exclude_args = []
+            if candidate_packages:
+                for pkg in candidate_packages:
+                    deps_exclude_args.extend(["--exclude", pkg])
+            
             emerge_cmd = [SUDO_COMMAND] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX", "EMERGE_DEFAULT_OPTS"]]
-            emerge_cmd += ["emerge"] + EMERGE_OPTS.split() + [f"--root={ROOTFS}", f"--config-root={ROOTFS}"] + unique_deps
+            emerge_cmd += ["emerge"] + EMERGE_OPTS.split() + [f"--root={ROOTFS}", f"--config-root={ROOTFS}"] + deps_exclude_args + unique_deps
             
             result = subprocess.run(emerge_cmd, capture_output=False)
             if result.returncode != 0:
@@ -731,8 +739,13 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
     
     packages_to_emerge = PKGS_TO_BUILD if 'PKGS_TO_BUILD' in locals() else PKGS
     
+    exclude_args = []
+    if candidate_packages:
+        for pkg in candidate_packages:
+            exclude_args.extend(["--exclude", pkg])
+    
     emerge_cmd = [SUDO_COMMAND] + [f"{k}={v}" for k, v in emerge_env.items() if k in ["FEATURES", "PKGDIR", "CONFIG_PROTECT", "INSTALL_MASK", "EPREFIX", "EMERGE_DEFAULT_OPTS"]]
-    emerge_cmd += ["emerge"] + EMERGE_OPTS.split() + [f"--root={ROOTFS}", f"--config-root={ROOTFS}"] + packages_to_emerge
+    emerge_cmd += ["emerge"] + EMERGE_OPTS.split() + [f"--root={ROOTFS}", f"--config-root={ROOTFS}"] + exclude_args + packages_to_emerge
     
     result = subprocess.run(emerge_cmd, capture_output=False)
     if result.returncode != 0:

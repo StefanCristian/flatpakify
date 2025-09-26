@@ -47,6 +47,7 @@ In order to test it (you will also get all instructions how to install / uninsta
 - Emerge always builds packages in the local ROOTFS specified in the format of ```./flatpak-build-org.gentoo.packagename.PackageName/rootfs/app/```
 - Currently when building flatpaks, they're going to be built with your CFLAGS, and if ```march=native``` they're not going to be exportable, same case as their dependencies.
 - But, if you want to offer architecture-optimized Flatpaks for only certain CPU architectures, now is your chance!
+- Whenever you change your system's USE flags, you will observe that depending on those USE flags dependencies will change. Including for your application. Not to worry, though, this is part of the process. And those dependencies will already be included into your flatpak automatically.
 
 ### Further instructions:
 - First thing first: install the freedesktop 24.08 SDK via:
