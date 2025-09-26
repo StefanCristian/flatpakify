@@ -521,6 +521,26 @@ INSTALL_MASK="/app/usr/include/ /bin /sbin /lib /lib64 /usr/bin /usr/sbin /usr/l
             "x11-libs/xcb-util-wm"
         ]
         
+        filtered_candidates = []
+        for candidate in candidate_packages:
+            should_exclude = False
+            for user_pkg in PKGS:
+                if candidate == user_pkg:
+                    should_exclude = True
+                    break
+                candidate_name = candidate.split('/')[1] if '/' in candidate else candidate
+                user_name = user_pkg.split('/')[1] if '/' in user_pkg else user_pkg
+                if candidate_name == user_name:
+                    should_exclude = True
+                    break
+            if not should_exclude:
+                filtered_candidates.append(candidate)
+        
+        original_count = len(candidate_packages)
+        candidate_packages = filtered_candidates
+        removed_count = original_count - len(candidate_packages)
+        log(f"Filtered candidate_packages: removed {removed_count} user-specified packages")
+        
         installed_packages = []
         
         for pkg in candidate_packages:
