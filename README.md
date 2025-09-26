@@ -24,7 +24,7 @@ If you want to install it via emerge:
 
 ```mkdir -p $HOME/my_flatpaks && cd $HOME/my_flatpaks```
 
-```sudo flatpakify games-strategy/seven-kingdoms --bundle-name org.gentoo.sevenkingdoms.sevenkingdoms --with-deps --install --rebuild-binary --command=7kaa  --clean```
+```sudo flatpakify games-strategy/seven-kingdoms --bundle-name org.gentoo.sevenkingdoms.sevenkingdoms --install --rebuild-binary --command=7kaa  --clean```
 
 Or, if you prefer git cloning and using the script locally:
 
@@ -32,7 +32,7 @@ Or, if you prefer git cloning and using the script locally:
 
 ```cd flatpakify```
 
-```sudo ./flatpakify games-strategy/seven-kingdoms --bundle-name org.gentoo.sevenkingdoms.sevenkingdoms --with-deps --install --rebuild-binary --command=7kaa  --clean```
+```sudo ./flatpakify games-strategy/seven-kingdoms --bundle-name org.gentoo.sevenkingdoms.sevenkingdoms --install --rebuild-binary --command=7kaa  --clean```
 
 In order to test it (you will also get all instructions how to install / uninstall / debug):
 
@@ -50,7 +50,7 @@ In order to test it (you will also get all instructions how to install / uninsta
 - Whenever you change your system's USE flags, you will observe that depending on those USE flags dependencies will change. Including for your application. Not to worry, though, this is part of the process. And those dependencies will already be included into your flatpak automatically.
 
 ### Further instructions:
-- First thing first: install the freedesktop 24.08 SDK via:
+- First thing first: install the freedesktop 24.08 Platform and SDK via:
 
 ```flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo```
 
@@ -64,7 +64,7 @@ In order to test it (you will also get all instructions how to install / uninsta
 - You must use ```--command=[your executable]``` if your executable name is not identical to ```${PN}``` [(from Gentoo Developer Manual)](https://devmanual.gentoo.org/ebuild-writing/variables/). If your app command is identical to ```${PN}```, you don't have to specify any ```--command```, for example many applications are following proper MAKEFILE rules to ```make install``` where their variables are set to install, based on the actual name of the package.
 - If you have to recompile it everytime, you must use ```--rebuild-binary```; it's in the TODO list to skip dependencies to be compiled every time.
 - If you want to keep the rootfs/app/ files and debug them directly on spot, you can remove the --clean option. The ```--clean``` option is generally used to remove the rootfs/* details after the packaging.
-- You can (and generally must) use ```--with-deps``` for a first-level runtime dependencies, i.e. ```sudo flatpakify program --with-deps --install --rebuild-binary``` if your application has direct runtime dependencies
+- If you don't want all the possible runtime dependencies added to your flatpak, you can selectively use ```--with-deps``` for a first-level runtime dependencies only + the ones you manually specify after, i.e. ```sudo flatpakify <category/package> <dep1> <dep2> <dep3> --with-deps --install --rebuild-binary``` if your application has direct runtime dependencies.
 - I recommend declaring ```PKGIDR``` somewhere before running this script, or export it in the bash terminal, in order to not _infect_ your actual HOST binary packages.
 - Don't overcomplicate things in your ebuild(s). The best ebuild is literally a empty one just like in my [example here](https://gitlab.com/argent/argent-ws/-/blob/master/app-admin/flatpakify/flatpakify-1.0.0.ebuild). If you have proper Makefiles, Meson builds, CMakeLists, and so forth, you'll observe that Portage knows exactly where to install them, how, and what configuration you can pass them - whole magic is already here.
 - If any of your files _escape_ the PREFIX, you must handle it with the source makefiles. You don't have to be profficient in making ebuilds, but in creating proper build/makefiles.
@@ -77,6 +77,7 @@ In order to test it (you will also get all instructions how to install / uninsta
 
 - When using ```--rebuild-binary```, it will always compile everything, including the dependencies. It can be a long time.
 - If you don't want to recompile the dependencies of your application every time, you can remove the ```--rebuild-binary``` option, but that means you need to clean the gentoo archived precompiled package made by the main command.
+- If you do not use this ```--rebuild-binary```, and you have compiled your application and deps at least once (successfully), package(s) will be created and will have the purple color when you want to reinstall / recompile it. That means it's a precompiled binary, so it won't get recompiled unless you manually clean it.
 - In order to clean it, you have to manually remove it from the local __binpkgs__ folder like this:
 
 ```sudo rm -rf ./binpkgs/your_package_category/your_package_name/*```
@@ -91,6 +92,10 @@ i.e.:
 
 ```sudo flatpakify-clean-precompiled games-strategy/seven-kingdoms```
 
+
+- In short, your complete command on a Gentoo with a installed flatpakify will look like this:
+
+```sudo ./flatpakify games-strategy/seven-kingdoms --bundle-name org.gentoo.sevenkingdoms.sevenkingdoms --install --rebuild-binary --command=7kaa  --clean && sudo flatpakify-clean-precompiled games-strategy/seven-kingdoms ```
 
 
 ### Right now the script is very rudimentary, meaning we have a few caveats:
