@@ -50,7 +50,7 @@ In order to test it (you will also get all instructions how to install / uninsta
 - Whenever you change your system's USE flags, you will observe that depending on those USE flags dependencies will change. Including for your application. Not to worry, though, this is part of the process. And those dependencies will already be included into your flatpak automatically.
 
 ### Further instructions:
-- First thing first: install the freedesktop 25.08 Platform and SDK via:
+- First thing first: install the freedesktop `25.08` or the ( default for versions *< 1.0.6* ) `24.08` Platform and SDK via:
 
 ```flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo```
 
