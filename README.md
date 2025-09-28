@@ -105,14 +105,20 @@ i.e.:
 - Your app's ___runtime dependencies must mandatory be installed in the HOST system___ before you compile your program. So, give it a go and compile your program first with ```sudo EPREFIX="/app" --root=/absolute/localpath/tomyapp/flatpak-build-something/rootfs/ emerge -v myapplication``` after writing your _empty_ ebuild [(example here)](https://gitlab.com/argent/argent-ws/-/blob/master/dev-util/flatpakify/flatpakify-1.0.5.ebuild), you anyway have to do this manually before flatpakification. But the fix to this will be added in TODO in the future for your programs to use encapsulated runtime libraries which are going to be used in your applications in the same location they're going to be built. It's not a hard TODO, but for the moment it makes the developer responsible on how Gentoo dependencies work in the system, and how you build your application.
 - I have not treated complex situations yet, I have tested with C/C++ applications for the moment, so I do not know (yet) how RUST, GO, NodeJS, or others behave. It's a work in progress.
 
+
+### How to help:
+- Test out
+- User requested stuff to github.com/stefancristian/flatpakify/issues
+- Create PRs
+
+
 ### TODO:
-- Import proper portage library to determine proper dependencies of given package. Right now if you specify ```--with-deps```, it does a double-emerge sequence. First it emerges the first-level runtime dependencies, then emerges your target(s).
-- To implement option to select which already compiled lbiraries you want to keep in the flatpak package.
+- To implement option to select which already compiled librariess you want to keep in the flatpak package.
 - Description management [based on autodetection]
 - Icons and links management of apps [based on autodetection]
 - Create own Gentoo Platform and SDK universally exported and hosted on Flathub, so everyone can use your runtime base
 - Create Gentoo runtime, for example a set of development libraries built on Gentoo which can be exported in order to be used in any other +-GNU Linux distribution
 - Implement some identification of already-present libs inside the Gentoo/Freedesktop Flatpak Platform & SDK in comparison with first level of runtime dependencies identified based on user given package.
 - Implement ```--use-dependencies-from-system``` (or something like this) option, in order for the application to use precompiled binaries from your $HOST $PKGIDR, instead of compiling them every time. I'm not sure this is ok, but most probably will be some of the most required features. The dependecies from the system option must compare with all the flatpak freedesktop runtime libraries that are already installed inside the runtime, so that we identify the exact packages and libraries that we should exclude from recompiling and packaging in our flatpak. Otherwise, this option would take __all__ runtime dependencies and we don't need all of them.
-- User requested stuff to github.com/stefancristian/flatpakify/issues
 - Find a way to expand FEATURES and EMERGE_DEFAULT_OPTS, and let the users decide what sort of options they want, without having to write it manually every time in terminal.
+- Treat out-of-eprefix Gentoo dependencies that are not packaged by flatpak (yet)

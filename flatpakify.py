@@ -617,6 +617,35 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
                 
                 subprocess.run([SUDO_COMMAND, "sh", "-c", f"echo '{env_assignment.strip()}' >> {ROOTFS}/etc/portage/package.env/flatpak"], check=True)
     
+    # detection mechanism for the future to be used for kde dependencies
+    if not USE_KDE_RUNTIME:
+        kde_packages = []
+        for PKG in PKGS:
+            if any(keyword in PKG.lower() for keyword in ['kde', 'plasma', 'kf5', 'kf6', 'qt5', 'qt6']):
+                kde_packages.append(PKG)
+            else:
+                EBUILD_PATH = ""
+                for repo_dir in ["/var/db/repos/gentoo"] + list(Path("/var/db/repos").glob("*")):
+                    pkg_dir = Path(repo_dir) / PKG
+                    if pkg_dir.is_dir():
+                        ebuilds = list(pkg_dir.glob("*.ebuild"))
+                        if ebuilds:
+                            EBUILD_PATH = str(ebuilds[0])
+                            break
+                
+                if EBUILD_PATH and os.path.isfile(EBUILD_PATH):
+                    with open(EBUILD_PATH, 'r') as f:
+                        content = f.read()
+                        if any(pattern in content for pattern in [
+                            'dev-qt/', 'kde-frameworks/', 'kde-plasma/', 'kde-apps/',
+                            'qtcore', 'qtgui', 'qtwidgets', 'kf5', 'kf6'
+                        ]):
+                            kde_packages.append(PKG)
+        
+        if kde_packages:
+            log(f"Detected KDE/Qt packages: {', '.join(kde_packages)}")
+            log("Consider using --use-kde-runtime flag FlatPak KDE/Qt integration")
+    
     if USE_KDE_RUNTIME:
         RUNTIME = "org.kde.Platform"
         FLATPAK_RUNTIME_VERSION = "6.9"
@@ -745,7 +774,7 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
                     content = f.read()
                     if 'cmake' in content or 'meson' in content:
                         uses_cmake_meson = True
-                        log(f"Package {PKG} uses CMake/Meson - will not set EPREFIX")
+                        log(f"Package {PKG} uses CMake/Meson - will not set EPREFIX inside package.env")
                         break
     
     if not BUILD_AS_RUNTIME and not BUILD_AS_DATA and not uses_cmake_meson:
