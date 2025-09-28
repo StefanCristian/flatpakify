@@ -15,7 +15,7 @@ PKGS = []
 APP_ID = ""
 COMMAND = ""
 RUNTIME = "org.freedesktop.Platform"
-FLATPAK_RUNTIME_VERSION = "24.08"
+FLATPAK_RUNTIME_VERSION = "25.08"
 FLATPAK_APP_VERSION = "1.0"
 BUNDLE_LIBS = False
 SUDO_COMMAND = "sudo"
@@ -61,7 +61,7 @@ def parse_args():
     parser.add_argument('--app-id', help='Override app ID (default: org.gentoo.package)')
     parser.add_argument('--command', help='Override command name (default: package name)')
     parser.add_argument('--runtime', default='org.freedesktop.Platform', help='Flatpak runtime')
-    parser.add_argument('--runtime-version', default='24.08', help='Runtime version')
+    parser.add_argument('--runtime-version', default='25.08', help='Runtime version')
     parser.add_argument('--app-version', default='1.0', help='Flatpak app/runtime version')
     parser.add_argument('--use-kde-runtime', action='store_true', help='Use KDE runtime for KDE/Qt applications')
     parser.add_argument('--set-prefix', help='Override installation prefix')
