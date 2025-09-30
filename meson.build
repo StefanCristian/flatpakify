@@ -1,6 +1,6 @@
 project(
     'flatpakify',
-    version : '1.0.2',
+    version : '1.0.5',
     license : 'GPL-2.0-or-later',
     meson_version : '>=0.58.0'
 )
