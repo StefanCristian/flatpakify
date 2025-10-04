@@ -217,7 +217,14 @@ def main():
         dst = f"{ROOTFS}/etc/portage/"
         if os.path.exists(src):
             if ptype == "file":
-                subprocess.run([SUDO_COMMAND, "cp", "-a", src, dst], check=False)
+                if os.path.islink(src):
+                    real_src = os.path.realpath(src)
+                    if os.path.exists(real_src):
+                        subprocess.run([SUDO_COMMAND, "cp", real_src, dst], check=False)
+                    else:
+                        log(f"Warning: {src} is a broken symlink, skipping")
+                else:
+                    subprocess.run([SUDO_COMMAND, "cp", "-a", src, dst], check=False)
             else:
                 subprocess.run([SUDO_COMMAND, "cp", "-aR", src, dst], check=False)
     
@@ -229,6 +236,8 @@ def main():
     PROFILE_PATH = ""
     if os.path.islink("/etc/portage/make.profile"):
         PROFILE_PATH = os.path.realpath("/etc/portage/make.profile")
+        if not os.path.exists(PROFILE_PATH):
+            PROFILE_PATH = ""
     else:
         try_profiles = [
             "/var/db/repos/gentoo/profiles/default/linux/amd64/23.0/desktop/plasma/systemd",
