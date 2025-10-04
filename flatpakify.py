@@ -221,9 +221,9 @@ def main():
             else:
                 subprocess.run([SUDO_COMMAND, "cp", "-aR", src, dst], check=False)
     
-    if os.path.exists("/etc/portage/package.env/00-argent.package.env"):
+    if os.path.exists("/etc/portage/package.env"):
         subprocess.run([SUDO_COMMAND, "mkdir", "-p", f"{ROOTFS}/etc/portage/package.env"], check=True)
-        subprocess.run([SUDO_COMMAND, "cp", "-a", "/etc/portage/package.env/00-argent.package.env", 
+        subprocess.run([SUDO_COMMAND, "cp", "-aR", "/etc/portage/package.env/*", 
                        f"{ROOTFS}/etc/portage/package.env/"], check=False)
 
     PROFILE_PATH = ""
@@ -258,7 +258,7 @@ def main():
                          stdout=subprocess.DEVNULL, check=True)
         
         make_conf_content = f"""# Minimal configuration for data-only packages
-{'FEATURES="-collision-protect -protect-owned -sandbox -usersandbox"' if EMERGE_REBUILD_BINARY else 'FEATURES="-collision-protect -protect-owned getbinpkg -sandbox -usersandbox"'}
+{'FEATURES="-collision-protect -protect-owned buildpkg -sandbox -usersandbox"' if EMERGE_REBUILD_BINARY else 'FEATURES="-collision-protect -protect-owned getbinpkg buildpkg -sandbox -usersandbox"'}
 USE="-* minimal"
 # Mask everything except data directories
 INSTALL_MASK="/app/usr/include/ /bin /sbin /lib /lib64 /usr/bin /usr/sbin /usr/lib /usr/lib64 /lib/debug /usr/lib/debug"
@@ -652,9 +652,9 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
         log(f"Using KDE runtime: {RUNTIME}/{FLATPAK_RUNTIME_VERSION}")
     
     if EMERGE_REBUILD_BINARY:
-        EMERGE_FEATURES = "-collision-protect -protect-owned"
+        EMERGE_FEATURES = "-collision-protect -protect-owned buildpkg"
     else:
-        EMERGE_FEATURES = "-collision-protect -protect-owned getbinpkg"
+        EMERGE_FEATURES = "-collision-protect -protect-owned getbinpkg buildpkg"
     
     if BUILD_AS_DATA:
         EMERGE_OPTS = "-v1 --ask=n"
@@ -708,7 +708,11 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
                 default_opts = "--rebuilt-binaries"
             else:
                 default_opts = "--getbinpkg --rebuilt-binaries"
-            emerge_env["EMERGE_DEFAULT_OPTS"] = os.environ.get("EMERGE_DEFAULT_OPTS", default_opts)
+            user_opts = os.environ.get("EMERGE_DEFAULT_OPTS", "")
+            if user_opts:
+                emerge_env["EMERGE_DEFAULT_OPTS"] = f"{user_opts} {default_opts}"
+            else:
+                emerge_env["EMERGE_DEFAULT_OPTS"] = default_opts
             
             if not BUILD_AS_RUNTIME and not BUILD_AS_DATA:
                 emerge_env["EPREFIX"] = EPREFIX
@@ -742,9 +746,9 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
     log("Running emerge for main package(s) (this may take a while)...")
     
     if EMERGE_REBUILD_BINARY:
-        EMERGE_FEATURES = "-collision-protect -protect-owned"
+        EMERGE_FEATURES = "-collision-protect -protect-owned buildpkg"
     else:
-        EMERGE_FEATURES = "-collision-protect -protect-owned getbinpkg"
+        EMERGE_FEATURES = "-collision-protect -protect-owned getbinpkg buildpkg"
     
     emerge_env = os.environ.copy()
     emerge_env["FEATURES"] = EMERGE_FEATURES
@@ -755,7 +759,11 @@ MYMESONARGS="--prefix={EPREFIX}{PREFIX}"
         default_opts = "--rebuilt-binaries"
     else:
         default_opts = "--getbinpkg --rebuilt-binaries"
-    emerge_env["EMERGE_DEFAULT_OPTS"] = os.environ.get("EMERGE_DEFAULT_OPTS", default_opts)
+    user_opts = os.environ.get("EMERGE_DEFAULT_OPTS", "")
+    if user_opts:
+        emerge_env["EMERGE_DEFAULT_OPTS"] = f"{user_opts} {default_opts}"
+    else:
+        emerge_env["EMERGE_DEFAULT_OPTS"] = default_opts
     
     uses_cmake_meson = False
     if not BUILD_AS_RUNTIME and not BUILD_AS_DATA:
